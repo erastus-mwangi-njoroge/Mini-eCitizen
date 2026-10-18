@@ -6,6 +6,7 @@ const { badRequest } = require("./errors");
 const { categoryIds } = require("./categories");
 const { statusIds, priorityIds } = require("./statuses");
 const { isValidLocation } = require("./locations");
+const { STAFF_DOMAIN, isStaffEmail } = require("./staffAccess");
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^(?:\+?254|0)([17]\d{8})$/; // Kenyan mobile: 07xx / 01xx / +2547xx
@@ -26,11 +27,55 @@ function validateRegistration(input = {}) {
   const password = typeof input.password === "string" ? input.password : "";
   check([
     ["name", name.length < 2 || name.length > 80 ? "Enter your full name." : ""],
-    ["email", !EMAIL.test(email) ? "Enter a valid email address." : ""],
+    ["email", !EMAIL.test(email) ? "Enter a valid email address." : isStaffEmail(email) ? `@${STAFF_DOMAIN} addresses are for county staff. Please use the Staff Portal.` : ""],
     ["phone", !phoneMatch ? "Enter a Kenyan mobile number, e.g. 0712 345 678." : ""],
     ["password", password.length < 8 ? "Use at least 8 characters." : password.length > 128 ? "Password is too long." : ""],
   ]);
   return { name, email, phone: "+254" + phoneMatch[1], password };
+}
+
+/** Staff sign-up: county email required, stronger password, and the access code issued by the county. */
+function validateStaffRegistration(input = {}) {
+  const name = text(input.name).replace(/\s+/g, " ");
+  const email = text(input.email).toLowerCase();
+  const password = typeof input.password === "string" ? input.password : "";
+  const accessCode = text(input.accessCode);
+  check([
+    ["name", name.length < 2 || name.length > 80 ? "Enter your full name." : ""],
+    ["email", !EMAIL.test(email) || !isStaffEmail(email) ? `Staff accounts need a @${STAFF_DOMAIN} email address.` : ""],
+    ["password", password.length < 10 ? "Use at least 10 characters." : password.length > 128 ? "Password is too long." : ""],
+    ["accessCode", !accessCode ? "Enter the staff access code." : ""],
+  ]);
+  return { name, email, password, accessCode };
+}
+
+/** Staff sign-in only ever accepts county addresses; anything else is refused before the password is looked at. */
+function validateStaffLogin(input = {}) {
+  const email = text(input.email).toLowerCase();
+  const password = typeof input.password === "string" ? input.password : "";
+  check([
+    ["email", !isStaffEmail(email) ? `Staff sign in with their @${STAFF_DOMAIN} email address.` : ""],
+    ["password", !password ? "Enter your password." : ""],
+  ]);
+  return { email, password };
+}
+
+/** "Forgot password" only needs a plausible email; whether it exists is never revealed. */
+function validateForgotPassword(input = {}) {
+  const email = text(input.email).toLowerCase();
+  check([["email", !EMAIL.test(email) ? "Enter the email address of your account." : ""]]);
+  return { email };
+}
+
+/** Setting a new password from an emailed link. Staff passwords need 10+ characters, citizens 8+. */
+function validatePasswordReset(input = {}, { minLength }) {
+  const token = text(input.token);
+  const password = typeof input.password === "string" ? input.password : "";
+  check([
+    ["password", password.length < minLength ? `Use at least ${minLength} characters.` : password.length > 128 ? "Password is too long." : ""],
+    ["_", !token ? "This reset link is incomplete. Request a new one." : ""],
+  ]);
+  return { token, password };
 }
 
 function validateLogin(input = {}) {
@@ -73,4 +118,4 @@ function validateAdminUpdate(input = {}) {
   return { status, priority, note };
 }
 
-module.exports = { validateRegistration, validateLogin, validateNewRequest, validateAdminUpdate };
+module.exports = { validateForgotPassword, validatePasswordReset, validateRegistration, validateStaffRegistration, validateStaffLogin, validateLogin, validateNewRequest, validateAdminUpdate };

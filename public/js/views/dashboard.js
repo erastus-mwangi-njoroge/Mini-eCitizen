@@ -72,8 +72,8 @@ function requestsSection() {
 
   function row(r) {
     const c = category(r.category);
-    return h("tr", { class: "row-link", onclick: () => navigate(`/requests/${r.id}`) },
-      h("td", { "data-label": "Request" }, h("a", { href: `#/requests/${r.id}`, onclick: (e) => e.stopPropagation() }, r.ref), h("div", { class: "muted small" }, formatDate(r.createdAt))),
+    return h("tr", { class: "row-link", onclick: () => navigate(`/staff/requests/${r.id}`) },
+      h("td", { "data-label": "Request" }, h("a", { href: `#/staff/requests/${r.id}`, onclick: (e) => e.stopPropagation() }, r.ref), h("div", { class: "muted small" }, formatDate(r.createdAt))),
       h("td", { "data-label": "Category" }, `${c.icon} ${c.label}`),
       h("td", { "data-label": "Location" }, r.ward, h("div", { class: "muted small" }, r.subCounty)),
       h("td", { "data-label": "Reported by" }, r.citizen?.name || "–"),
@@ -101,14 +101,14 @@ function requestsSection() {
   return section;
 }
 
-route("/admin", {
-  title: "Dashboard",
-  access: "admin",
+route("/staff", {
+  title: "Staff dashboard",
+  access: "staff",
   async render() {
     const analytics = await api.get("/api/admin/analytics");
     const table = requestsSection();
     return h("div", { class: "wrap" },
-      h("div", { class: "page-head" }, h("h1", null, "Admin dashboard")),
+      h("div", { class: "page-head" }, h("h1", null, "Staff dashboard")),
       analyticsSection(analytics, (status) => table.applyStatus(status)),
       table);
   },

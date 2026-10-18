@@ -1,5 +1,6 @@
 /** The only file that reads process.env. Everything else receives this plain object. */
 const path = require("path");
+const { STAFF_DOMAIN } = require("./domain/staffAccess");
 
 function loadConfig(env = process.env) {
   const root = path.join(__dirname, "..");
@@ -14,8 +15,20 @@ function loadConfig(env = process.env) {
     sessionHours: Number(env.SESSION_HOURS) || 8,
     secureCookies: env.COOKIE_SECURE ? env.COOKIE_SECURE === "1" : production,
     // Staff account created on first run when no admin exists.
-    adminEmail: (env.ADMIN_EMAIL || "admin@muranga.go.ke").toLowerCase(),
+    adminEmail: (env.ADMIN_EMAIL || `admin@${STAFF_DOMAIN}`).toLowerCase(),
     adminPassword: env.ADMIN_PASSWORD || (production ? "" : "ChangeMe123"),
+    // Secret code new staff must enter to create an account (the county email alone cannot be verified).
+    // Dev default so it works out of the box; in production it must be set, otherwise staff sign-up is closed.
+    staffAccessCode: env.STAFF_ACCESS_CODE || (production ? "" : "MURANGA-STAFF"),
+    // Password-reset emails (Brevo free plan). Without these, links are printed to the console in development
+    // and reset emails are disabled in production.
+    brevoApiKey: env.BREVO_API_KEY || "",
+    mailFromEmail: env.MAIL_FROM_EMAIL || "", // must be a sender verified in your Brevo account
+    mailFromName: env.MAIL_FROM_NAME || "Murang'a County Service Requests",
+    // Public address of the site, used to build the link in the email. Render provides RENDER_EXTERNAL_URL itself.
+    publicUrl: (env.PUBLIC_URL || env.RENDER_EXTERNAL_URL || `http://localhost:${Number(env.PORT) || 3000}`).replace(/\/+$/, ""),
+    publicUrlConfigured: Boolean(env.PUBLIC_URL || env.RENDER_EXTERNAL_URL),
+    resetMinutes: 30,
     maxImageBytes: (Number(env.MAX_IMAGE_MB) || 5) * 1024 * 1024,
     rateLimitPerMinute: Number(env.RATE_LIMIT) || 20,
   };

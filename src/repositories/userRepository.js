@@ -18,6 +18,11 @@ class UserRepository {
     return this.store.data.users.some((u) => u.role === "admin");
   }
 
+  /** Persist changes made to a user object obtained from this repository. */
+  save() {
+    this.store.save();
+  }
+
   create(fields) {
     const user = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), ...fields };
     this.store.data.users.push(user);

@@ -1,6 +1,6 @@
 import { h } from "../core/dom.js";
 import { route, navigate } from "../core/router.js";
-import { session, isAdmin } from "../core/session.js";
+import { session } from "../core/session.js";
 
 const STEPS = [
   ["1", "Report it", "Pick a category, say where it is and describe the problem. A photo helps but is optional."],
@@ -17,10 +17,8 @@ function trackForm() {
 route("/", {
   title: "Home",
   access: "public",
-  render({ query }) {
-    if (isAdmin()) return navigate("/admin"), h("div");
+  render() {
     return h("div", null,
-      query.staffonly ? h("div", { class: "wrap" }, h("div", { class: "notice notice-bad", role: "alert" }, "The admin dashboard is for county staff. You are signed in with a citizen account — sign out and use ", h("a", { href: "#/login?staff=1" }, "Staff sign-in"), ".")) : null,
       h("section", { class: "hero" }, h("div", { class: "wrap hero-inner" },
         h("h1", null, "See a problem in your ward? Tell us."),
         h("p", { class: "lead" }, "Report broken streetlights, water problems, uncollected garbage and more to Murang'a County — and follow progress until it is fixed."),

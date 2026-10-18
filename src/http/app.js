@@ -9,7 +9,11 @@ const SECURITY_HEADERS = {
   "X-Frame-Options": "DENY",
 };
 
-const SESSION_COOKIE = "session";
+/** One cookie per portal, so being signed in to one never signs you in to the other. */
+const REALMS = {
+  citizen: { cookie: "session", role: "citizen" },
+  staff: { cookie: "staff_session", role: "admin" },
+};
 
 /**
  * Builds the Node request listener: security headers, session lookup, API routing, static files, error handling.
@@ -25,10 +29,13 @@ function createApp({ config, router, tokens, auth, limiter }) {
   const sendJson = (res, status, data, headers = {}) =>
     send(res, status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...headers }, JSON.stringify(data));
 
-  /** Cookie helpers handed to route handlers through the context. */
-  const sessionCookies = {
-    set: (token) => `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${config.sessionHours * 3600}${config.secureCookies ? "; Secure" : ""}`,
-    clear: () => `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`,
+  const cookieFor = (realm, token, maxAge) =>
+    `${REALMS[realm].cookie}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${config.secureCookies ? "; Secure" : ""}`;
+
+  /** The signed-in user for one portal, or null. The token must have been issued for that same portal. */
+  const userFor = (ctx, realm) => {
+    const session = tokens.read(ctx.cookies[REALMS[realm].cookie]);
+    return session && session.realm === realm ? auth.findPublicUser(session.uid, REALMS[realm].role, session.iat) : null;
   };
 
   async function handleApi(req, res, url) {
@@ -41,19 +48,18 @@ function createApp({ config, router, tokens, auth, limiter }) {
 
     const ctx = createContext(req, res, url, { maxBodyBytes });
     ctx.params = match.params;
-    ctx.sessionCookies = sessionCookies;
-    ctx.issueSession = (user) => {
-      ctx.headers["Set-Cookie"] = sessionCookies.set(tokens.issue({ uid: user.id }));
+    ctx.issueSession = (user, realm) => {
+      ctx.headers["Set-Cookie"] = cookieFor(realm, tokens.issue({ uid: user.id, realm }), config.sessionHours * 3600);
     };
-    ctx.endSession = () => {
-      ctx.headers["Set-Cookie"] = sessionCookies.clear();
+    ctx.endSession = (realm) => {
+      ctx.headers["Set-Cookie"] = cookieFor(realm, "", 0);
     };
     ctx.rateLimit = (action) => {
       if (limiter.hit(`${ctx.ip}:${action}`)) throw tooManyRequests();
     };
 
-    const session = tokens.read(ctx.cookies[SESSION_COOKIE]);
-    ctx.user = session ? auth.findPublicUser(session.uid) : null;
+    ctx.citizen = userFor(ctx, "citizen");
+    ctx.staff = userFor(ctx, "staff");
 
     let result;
     for (const handler of match.handlers) result = await handler(ctx);

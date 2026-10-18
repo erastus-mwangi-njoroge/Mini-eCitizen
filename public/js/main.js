@@ -6,6 +6,7 @@ import { renderFooter } from "./components/footer.js";
 // Each view registers its own route when imported.
 import "./views/home.js";
 import "./views/auth.js";
+import "./views/staffAuth.js";
 import "./views/newRequest.js";
 import "./views/myRequests.js";
 import "./views/requestDetail.js";
@@ -15,14 +16,17 @@ import "./views/notFound.js";
 
 async function boot() {
   const header = document.getElementById("site-header");
-  const refresh = () => renderNavbar(header);
+  const footer = document.getElementById("site-footer");
+  const refresh = () => {
+    renderNavbar(header);
+    renderFooter(footer);
+  };
   try {
     await loadSession();
   } catch {
     document.getElementById("main").textContent = "The service is unavailable right now. Please try again shortly.";
     return;
   }
-  renderFooter(document.getElementById("site-footer"));
   onUserChange(refresh);
   document.addEventListener("route-changed", refresh);
   refresh();

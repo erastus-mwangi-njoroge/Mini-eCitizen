@@ -1,18 +1,17 @@
 const { unauthorized, forbidden } = require("../domain/errors");
 
-/** Guards run before a route handler and throw to stop the request. */
-const requireUser = (ctx) => {
-  if (!ctx.user) throw unauthorized();
+/**
+ * Guards run before a route handler and throw to stop the request.
+ * The citizen portal and staff portal have separate sessions (ctx.citizen / ctx.staff); one never grants the other.
+ */
+const requireCitizen = (ctx) => {
+  if (ctx.citizen) return;
+  throw ctx.staff ? forbidden("Citizen accounts only. You are signed in to the staff portal.") : unauthorized();
 };
 
 const requireAdmin = (ctx) => {
-  requireUser(ctx);
-  if (ctx.user.role !== "admin") throw forbidden("Staff access only.");
+  if (ctx.staff) return;
+  throw ctx.citizen ? forbidden("Staff access only.") : unauthorized("Please sign in to the staff portal.");
 };
 
-const requireCitizen = (ctx) => {
-  requireUser(ctx);
-  if (ctx.user.role !== "citizen") throw forbidden("Only citizens can submit requests.");
-};
-
-module.exports = { requireUser, requireAdmin, requireCitizen };
+module.exports = { requireCitizen, requireAdmin };

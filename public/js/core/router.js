@@ -3,8 +3,10 @@ import { replace } from "./dom.js";
 
 /**
  * Hash-based router. A view registers itself with:
- *   route("/requests/:id", { title, access: "public" | "guest" | "user" | "admin", render(ctx) -> Node | Promise<Node> })
- * `guest` pages (sign in / register) bounce signed-in users away.
+ *   route("/requests/:id", { title, access, render(ctx) -> Node | Promise<Node> })
+ * access: "public" (anyone) | "guest" (citizen sign-in/register: bounces signed-in citizens)
+ *       | "user" (citizens only) | "staffGuest" (staff sign-in/register) | "staff" (staff only).
+ * Everything under /staff is the staff portal and is themed differently (see body.staff-portal in the CSS).
  */
 const routes = [];
 
@@ -19,7 +21,7 @@ export const navigate = (path) => {
   else location.hash = path;
 };
 
-const homeFor = (user) => (user?.role === "admin" ? "/admin" : "/");
+export const inStaffPortal = (path) => path === "/staff" || path.startsWith("/staff/");
 
 function parseHash() {
   const [path, query = ""] = (location.hash.slice(1) || "/").split("?");
@@ -28,10 +30,11 @@ function parseHash() {
 
 /** Where a visitor should be sent instead, or null when they may see the view. */
 function redirectFor(access) {
-  const { user } = session;
-  if (access === "guest" && user) return homeFor(user);
-  if ((access === "user" || access === "admin") && !user) return `/login?next=${encodeURIComponent(location.hash.slice(1))}`;
-  if (access === "admin" && user.role !== "admin") return "/?staffonly=1";
+  const next = encodeURIComponent(location.hash.slice(1));
+  if (access === "guest" && session.user) return "/requests";
+  if (access === "user" && !session.user) return `/login?next=${next}`;
+  if (access === "staffGuest" && session.staff) return "/staff";
+  if (access === "staff" && !session.staff) return `/staff/login?next=${next}`;
   return null;
 }
 
@@ -47,6 +50,7 @@ async function dispatch() {
 
   const redirect = redirectFor(view.access);
   if (redirect) return navigate(redirect);
+  document.body.classList.toggle("staff-portal", inStaffPortal(path));
 
   replace(outlet, loadingBlock());
   try {
@@ -55,7 +59,7 @@ async function dispatch() {
     replace(outlet, page);
   } catch (err) {
     if (token !== renderToken) return;
-    if (err.status === 401) return navigate(`/login?next=${encodeURIComponent(location.hash.slice(1))}`);
+    if (err.status === 401) return navigate(`${inStaffPortal(path) ? "/staff" : ""}/login?next=${encodeURIComponent(location.hash.slice(1))}`);
     replace(outlet, errorBlock(err.message));
   }
   document.title = `${typeof view.title === "function" ? view.title(params) : view.title} · Murang'a Service Requests`;

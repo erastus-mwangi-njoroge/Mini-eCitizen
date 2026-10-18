@@ -43,7 +43,8 @@ function createContext(req, res, url, { maxBodyBytes }) {
     res,
     query: Object.fromEntries(url.searchParams),
     params: {},
-    user: null,
+    citizen: null, // signed-in citizen (citizen portal), set by the app
+    staff: null, // signed-in staff member (staff portal), set by the app
     ip: req.socket.remoteAddress || "unknown",
     cookies: parseCookies(req.headers.cookie),
     json: () => readJson(req, maxBodyBytes),

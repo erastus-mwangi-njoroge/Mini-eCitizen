@@ -12,19 +12,22 @@ const PNG_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYA
 async function startServer(overrides = {}) {
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "sr-test-"));
   const config = { ...loadConfig({}), dataDir, rateLimitPerMinute: 1000, ...overrides };
-  const app = buildApp(config);
+  const sent = []; // every email the app tried to send
+  const app = buildApp(config, { mailer: { send: async (message) => { sent.push(message); } } });
   const server = http.createServer(app.handler);
   await new Promise((resolve) => server.listen(0, resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   return {
-    base, config, app,
+    base, config, app, sent,
     close: () => new Promise((resolve) => server.close(() => { fs.rmSync(dataDir, { recursive: true, force: true }); resolve(); })),
   };
 }
 
 /** A tiny HTTP client that remembers the session cookie, like a browser tab. */
 class Client {
-  constructor(base) { this.base = base; this.cookie = ""; }
+  constructor(base) { this.base = base; this.jar = new Map(); }
+
+  get cookie() { return [...this.jar].map(([k, v]) => `${k}=${v}`).join("; "); }
 
   async call(method, url, body, headers = {}) {
     const res = await fetch(this.base + url, {
@@ -33,7 +36,10 @@ class Client {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const set = res.headers.get("set-cookie");
-    if (set) this.cookie = set.split(";")[0].endsWith("=") ? "" : set.split(";")[0];
+    if (set) {
+      const [name, value] = set.split(";")[0].split("=");
+      if (value) this.jar.set(name, value); else this.jar.delete(name);
+    }
     const type = res.headers.get("content-type") || "";
     return { status: res.status, headers: res.headers, body: type.includes("json") ? await res.json() : Buffer.from(await res.arrayBuffer()) };
   }
@@ -54,7 +60,7 @@ async function registerCitizen(client, n = 1) {
 }
 
 async function loginAdmin(client, config) {
-  const res = await client.post("/api/auth/login", { email: config.adminEmail, password: config.adminPassword });
+  const res = await client.post("/api/staff/auth/login", { email: config.adminEmail, password: config.adminPassword });
   if (res.status !== 200) throw new Error("admin login failed");
 }
 

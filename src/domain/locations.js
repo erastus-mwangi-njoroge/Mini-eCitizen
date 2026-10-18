@@ -11,11 +11,10 @@ const SUBCOUNTY_WARDS = {
   Kiharu: ["Wangu", "Mugoiri", "Mbiri", "Township", "Murarandia", "Gaturi"],
   Kandara: ["Ng'araria", "Muruka", "Kagundu-ini", "Gaichanjiru", "Ithiru", "Ruchu"],
   Kigumo: ["Kahumbu", "Muthithi", "Kigumo", "Kangari", "Kinyona"],
-  Maragua: MARAGUA_WARDS,
   Kangema: ["Kanyenya-ini", "Muguru", "Rwathia"],
   Mathioya: ["Gitugi", "Kiru", "Kamacharia"],
   Gatanga: ["Ithanga", "Kakuzi/Mitubiri", "Mugumo-ini", "Kihumbu-ini", "Gatanga", "Kariara"],
-  "Murang’a South": MARAGUA_WARDS,
+  "Murang’a South": ["Kimorori/Wempa", "Makuyu", "Kambiti", "Kamahuha", "Ichagaki", "Nginda"],
 };
 
 const has = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);

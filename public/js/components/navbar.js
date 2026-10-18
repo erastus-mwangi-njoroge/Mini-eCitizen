@@ -1,43 +1,77 @@
 import { h, replace } from "../core/dom.js";
 import { api } from "../core/api.js";
-import { session, setUser, isAdmin } from "../core/session.js";
-import { navigate, currentPath } from "../core/router.js";
+import { session, setUser, setStaff } from "../core/session.js";
+import { navigate, currentPath, inStaffPortal } from "../core/router.js";
+import { brandMark } from "./brandMark.js";
 
-/** Links shown for the current visitor. */
-function linksFor(user) {
-  const links = [{ href: "/", label: "Home" }, { href: "/track", label: "Track a request" }];
-  if (user?.role === "citizen") links.push({ href: "/requests", label: "My requests" }, { href: "/new", label: "Report a problem" });
-  if (user?.role === "admin") return [{ href: "/admin", label: "Dashboard" }, { href: "/track", label: "Track a request" }];
-  return links;
+const isCurrent = (path, href) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"));
+
+/** A hamburger toggle + the menu it controls (phones). */
+function menuWithToggle(menu) {
+  const toggle = h("button", {
+    class: "nav-toggle", "aria-expanded": "false", "aria-controls": "nav-menu", "aria-label": "Menu",
+    onclick: () => toggle.setAttribute("aria-expanded", menu.classList.toggle("open")),
+  }, "☰");
+  return [toggle, menu];
 }
 
-async function signOut() {
+// ---- Citizen portal header --------------------------------------------------
+
+async function citizenSignOut() {
   await api.post("/api/auth/logout");
   setUser(null);
   navigate("/");
 }
 
-/** (Re)draw the header; called on sign-in/out and on every page change to highlight the current link. */
-export function renderNavbar(el) {
+function citizenHeader(path) {
   const { user } = session;
-  const path = currentPath();
-  const isCurrent = (href) => (href === "/" ? path === "/" : path === href || path.startsWith(href + "/"));
+  const links = [{ href: "/", label: "Home" }, { href: "/track", label: "Track a request" }];
+  if (user) links.push({ href: "/requests", label: "My requests" }, { href: "/new", label: "Report a problem" });
 
   const menu = h("nav", { class: "nav", id: "nav-menu", "aria-label": "Main" },
-    linksFor(user).map((l) => h("a", { href: "#" + l.href, "aria-current": isCurrent(l.href) ? "page" : null }, l.label)),
+    links.map((l) => h("a", { href: "#" + l.href, "aria-current": isCurrent(path, l.href) ? "page" : null }, l.label)),
     h("span", { class: "nav-spacer" }),
     user
-      ? [h("span", { class: "nav-user" }, user.name, isAdmin() ? h("span", { class: "tag" }, "Staff") : null),
-         h("button", { class: "btn btn-ghost btn-sm", onclick: signOut }, "Sign out")]
-      : [h("a", { href: "#/login?staff=1" }, "Staff login"), h("a", { href: "#/login" }, "Sign in"), h("a", { class: "btn btn-gold btn-sm", href: "#/register" }, "Create account")]);
+      ? [h("span", { class: "nav-user" }, user.name), h("button", { class: "btn btn-ghost btn-sm", onclick: citizenSignOut }, "Sign out")]
+      : [h("a", { href: "#/login" }, "Sign in"), h("a", { class: "btn btn-gold btn-sm", href: "#/register" }, "Create account")],
+    // Always visible on the citizen site: the way into the separate staff portal.
+    session.staff ? null : h("a", { class: "btn btn-staff btn-sm", href: "#/staff/login" }, "Admin login"),
+    session.staff ? h("a", { class: "btn btn-staff btn-sm", href: "#/staff" }, "Admin dashboard") : null);
 
-  const toggle = h("button", {
-    class: "nav-toggle", "aria-expanded": "false", "aria-controls": "nav-menu", "aria-label": "Menu",
-    onclick: () => toggle.setAttribute("aria-expanded", menu.classList.toggle("open")),
-  }, "☰");
-
-  replace(el, h("div", { class: "wrap header-inner" },
-    h("a", { class: "brand", href: "#/" }, h("span", { class: "brand-mark", "aria-hidden": "true" }, "M"),
+  return [
+    h("a", { class: "brand", href: "#/" }, brandMark("M"),
       h("span", null, h("strong", null, "Murang'a County"), h("small", null, "Service Requests"))),
-    toggle, menu));
+    ...menuWithToggle(menu),
+  ];
+}
+
+// ---- Staff portal header (different brand, colours and links) -------------------
+
+async function staffSignOut() {
+  await api.post("/api/staff/auth/logout");
+  setStaff(null);
+  navigate("/staff/login");
+}
+
+function staffHeader(path) {
+  const { staff } = session;
+  const menu = h("nav", { class: "nav", id: "nav-menu", "aria-label": "Staff" },
+    staff ? h("a", { href: "#/staff", "aria-current": isCurrent(path, "/staff") && !path.includes("login") ? "page" : null }, "Dashboard") : null,
+    h("span", { class: "nav-spacer" }),
+    h("a", { href: "#/" }, "Citizen site ↗"),
+    staff
+      ? [h("span", { class: "nav-user" }, staff.name, h("span", { class: "tag" }, "Staff")), h("button", { class: "btn btn-ghost btn-sm", onclick: staffSignOut }, "Sign out")]
+      : null);
+
+  return [
+    h("a", { class: "brand", href: "#/staff" }, brandMark("⛨"),
+      h("span", null, h("strong", null, "Staff Portal"), h("small", null, "Murang'a County Government"))),
+    ...menuWithToggle(menu),
+  ];
+}
+
+/** (Re)draw the header; called on sign-in/out and on every page change. */
+export function renderNavbar(el) {
+  const path = currentPath();
+  replace(el, h("div", { class: "wrap header-inner" }, ...(inStaffPortal(path) ? staffHeader(path) : citizenHeader(path))));
 }

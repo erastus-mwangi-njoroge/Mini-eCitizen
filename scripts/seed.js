@@ -38,7 +38,7 @@ const rand = () => { // mulberry32
 const pick = (list) => list[Math.floor(rand() * list.length)];
 
 const citizens = ["Wanjiru Kamau", "Peter Mwangi", "Grace Njeri", "Samuel Kariuki", "Mercy Wambui"].map((name, i) =>
-  services.auth.register({ name, email: `citizen${i + 1}@example.com`, phone: `07120000${10 + i}`, password: "Password123" })
+  services.auth.registerCitizen({ name, email: `citizen${i + 1}@example.com`, phone: `07120000${10 + i}`, password: "Password123" })
 );
 
 const categories = Object.keys(samples);

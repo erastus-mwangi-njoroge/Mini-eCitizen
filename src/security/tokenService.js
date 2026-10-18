@@ -13,7 +13,7 @@ class TokenService {
 
   issue(payload) {
     const now = Date.now();
-    const body = Buffer.from(JSON.stringify({ ...payload, exp: now + this.ttlMs })).toString("base64url");
+    const body = Buffer.from(JSON.stringify({ ...payload, iat: now, exp: now + this.ttlMs })).toString("base64url");
     return `${body}.${this.#sign(body)}`;
   }
 
