@@ -1,4 +1,4 @@
-import { h } from "../core/dom.js";
+import { h, append } from "../core/dom.js";
 import { api } from "../core/api.js";
 import { route, navigate } from "../core/router.js";
 import { session, category } from "../core/session.js";
@@ -22,6 +22,7 @@ function dashboard() {
   let ticket = 0; // ignore answers that arrive after a newer click
 
   const bar = h("div", { class: "dash-filterbar" });
+  const facts = h("p", { class: "dash-facts small" });
   const kpis = h("div", { class: "stats" });
   const grid = h("div", { class: "dash-grid" });
   const body = h("tbody");
@@ -62,10 +63,16 @@ function dashboard() {
   // ---- filter bar: what you are looking at, and how to undo it ----
   function drawFilterBar(a) {
     const active = Object.keys(FILTER_NAMES).filter((k) => filters[k]);
-    bar.replaceChildren(
+    bar.replaceChildren();
+    append(bar, [
       h("span", { class: "dash-showing" }, active.length ? h("span", null, h("b", null, a.matching), " matching request", a.matching === 1 ? "" : "s", " — every chart below is filtered") : h("span", null, "Showing all ", h("b", null, a.matching), " requests. Click any chart item to filter the whole dashboard.")),
       active.map((k) => h("button", { class: "chip", type: "button", title: "Remove this filter", onclick: () => set({ [k]: "" }) }, `${FILTER_NAMES[k]}: ${k === "q" ? `“${filters[k]}”` : labelFor(k, filters[k])} ✕`)),
-      active.length ? h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: clearAll }, "Clear all") : null);
+      active.length ? h("button", { class: "btn btn-ghost btn-sm", type: "button", onclick: clearAll }, "Clear all") : null]);
+    // The numbers that used to be separate tiles, as one brief sentence about the matching requests.
+    const t = a.totals;
+    const avg = a.avgResolutionHours == null ? "no resolved cases to average yet" : `average time to resolve is ${formatDuration(a.avgResolutionHours)}`;
+    facts.textContent = `${a.resolutionRate}% resolved, ${avg}, and ${t.overdue} open case${t.overdue === 1 ? " has" : "s have"} waited over 7 days.`;
+    facts.classList.toggle("text-bad", t.overdue > 0);
   }
 
   // ---- number tiles ----
@@ -79,10 +86,7 @@ function dashboard() {
       tile({ label: "Open cases", value: t.open, tone: "open", note: "Pending + in progress", on: () => toggle("status")("open"), selected: st === "open" }),
       tile({ label: "Pending", value: t.pending, tone: "pending", note: "Not yet started", on: () => toggle("status")("pending"), selected: st === "pending" }),
       tile({ label: "In progress", value: t.inProgress, tone: "progress", note: "Being worked on", on: () => toggle("status")("in_progress"), selected: st === "in_progress" }),
-      tile({ label: "Resolved", value: t.resolved, tone: "resolved", note: "Completed", on: () => toggle("status")("resolved"), selected: st === "resolved" }),
-      tile({ label: "Matching requests", value: a.matching, tone: "info", note: `${a.resolutionRate}% resolved` }),
-      tile({ label: "Avg time to resolve", value: formatDuration(a.avgResolutionHours), tone: "info", note: "For the matching set" }),
-      tile({ label: "Open over 7 days", value: t.overdue, tone: t.overdue ? "bad" : "info", note: "Needs attention" }));
+      tile({ label: "Resolved", value: t.resolved, tone: "resolved", note: "Completed", on: () => toggle("status")("resolved"), selected: st === "resolved" }));
   }
 
   // ---- charts ----
@@ -129,7 +133,7 @@ function dashboard() {
 
   refresh();
   return h("div", null,
-    h("section", { "aria-labelledby": "analytics-h" }, h("h2", { id: "analytics-h" }, "Overview"), bar, kpis, grid),
+    h("section", { "aria-labelledby": "analytics-h" }, h("h2", { id: "analytics-h" }, "Overview"), bar, facts, kpis, grid),
     h("section", { id: "requests", "aria-labelledby": "requests-h" },
       h("div", { class: "page-head" }, h("h2", { id: "requests-h" }, "Service requests"), exportLink),
       h("div", { class: "filters" }, searchBox, statusSel, categorySel, prioritySel, sortSel),

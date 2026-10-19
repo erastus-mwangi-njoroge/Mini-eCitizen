@@ -368,9 +368,11 @@ body.staff-portal .btn { border-radius: 6px; }
 .stat .stat-value { transition: color .2s; }
 .dash-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; margin-bottom: 20px; }
 .dash-grid .card { margin-bottom: 0; grid-column: span 2; min-width: 0; }
-.dash-grid .card:nth-child(3) { grid-column: span 4; }
-.dash-grid .card:nth-child(4) { grid-column: span 3; }
-.dash-grid .card:nth-child(5) { grid-column: span 3; }
+.dash-grid .card:nth-child(n+4) { grid-column: span 3; } /* row 1: three equal cards, row 2: two equal cards */
+.dash-card { display: flex; flex-direction: column; }
+.dash-card > :last-child { flex: 1; }
+.dash-facts { margin: -4px 0 14px; color: var(--muted); }
+.dash-facts.text-bad { color: var(--bad); }
 .dash-card h3 { margin-bottom: 2px; }
 .dash-hint { margin: 0 0 10px; }
 .dash-grid.is-filtered .dash-card { border-color: var(--green); }
