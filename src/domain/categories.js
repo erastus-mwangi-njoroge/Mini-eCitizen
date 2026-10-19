@@ -5,7 +5,7 @@ const CATEGORIES = [
   { id: "garbage", label: "Garbage collection", icon: "🗑️", department: "Environment" },
   { id: "roads", label: "Pothole / damaged road", icon: "🚧", department: "Roads & Lighting" },
   { id: "drainage", label: "Blocked drain / sewer", icon: "🚰", department: "Water & Sanitation" },
-  { id: "other", label: "Other", icon: "📋", department: "General" },
+  { id: "other", label: "Other", icon: "📋", department: "Public Service & Administration" },
 ];
 
 const categoryIds = () => CATEGORIES.map((c) => c.id);

@@ -17,8 +17,8 @@ function loadConfig(env = process.env) {
     // Staff account created on first run when no admin exists.
     adminEmail: (env.ADMIN_EMAIL || `admin@${STAFF_DOMAIN}`).toLowerCase(),
     adminPassword: env.ADMIN_PASSWORD || (production ? "" : "ChangeMe123"),
-    // Secret code new staff must enter to create an account (the county email alone cannot be verified).
-    // Dev default so it works out of the box; in production it must be set, otherwise staff sign-up is closed.
+    // Optional SHARED approval code anyone can use to register as staff (handy for local development).
+    // Normal use: the administrator issues single-use codes from the dashboard, so leave this empty in production.
     staffAccessCode: env.STAFF_ACCESS_CODE || (production ? "" : "MURANGA-STAFF"),
     // Password-reset emails (Brevo free plan). Without these, links are printed to the console in development
     // and reset emails are disabled in production.

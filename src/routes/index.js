@@ -4,12 +4,13 @@ const { CATEGORIES } = require("../domain/categories");
 const { STATUSES, PRIORITIES, nextStatuses } = require("../domain/statuses");
 const { SUBCOUNTY_WARDS } = require("../domain/locations");
 const { STAFF_DOMAIN } = require("../domain/staffAccess");
+const { DEPARTMENTS } = require("../domain/departments");
 
 /**
  * Declares every API endpoint in one place so the whole surface of the app can be read at a glance.
  * Citizen portal: /api/auth/*, /api/requests/*.   Staff portal: /api/staff/auth/*, /api/admin/*.
  */
-function buildRouter({ auth, requests, analytics, config }) {
+function buildRouter({ auth, requests, analytics, staffInvites, config }) {
   const router = new Router();
 
   // ---- Public ------------------------------------------------------------
@@ -21,7 +22,7 @@ function buildRouter({ auth, requests, analytics, config }) {
     locations: SUBCOUNTY_WARDS,
     maxImageMb: config.maxImageBytes / 1048576,
     staffDomain: STAFF_DOMAIN,
-    staffSignupOpen: Boolean(config.staffAccessCode),
+    departments: DEPARTMENTS,
   }));
 
   router.get("/api/track/:ref", (ctx) => {
@@ -104,6 +105,11 @@ function buildRouter({ auth, requests, analytics, config }) {
   }));
   router.get("/api/admin/analytics", requireAdmin, () => analytics.summary());
   router.patch("/api/admin/requests/:id", requireAdmin, async (ctx) => ({ request: requests.update(ctx.staff, ctx.params.id, await ctx.json()) }));
+
+  // ---- Staff portal: approval codes (county administrator only) -----------------
+  router.get("/api/admin/invites", requireAdmin, (ctx) => ({ invites: staffInvites.list(ctx.staff) }));
+  router.post("/api/admin/invites", requireAdmin, async (ctx) => ({ invite: staffInvites.create(ctx.staff, await ctx.json()) }));
+  router.delete("/api/admin/invites/:id", requireAdmin, (ctx) => staffInvites.revoke(ctx.staff, ctx.params.id));
 
   return router;
 }

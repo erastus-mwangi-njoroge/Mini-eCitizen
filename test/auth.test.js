@@ -70,7 +70,7 @@ test("cross-site requests are blocked", async () => {
 
 // ---- Staff portal vs citizen portal ----------------------------------------
 
-const staffSignup = (extra = {}) => ({ name: "Njeri Staff", email: "njeri@muranga.go.ke", password: "StaffPass1234", accessCode: "MURANGA-STAFF", ...extra });
+const staffSignup = (extra = {}) => ({ name: "Njeri Staff", email: "njeri@muranga.go.ke", department: "Water & Sanitation", password: "StaffPass1234", accessCode: "MURANGA-STAFF", ...extra });
 
 test("the default admin signs in to the staff portal", async () => {
   const c = new Client(srv.base);
@@ -147,9 +147,15 @@ test("citizens cannot register with a county staff email", async () => {
   assert.ok(res.body.fields.email);
 });
 
-test("staff sign-up is closed in production unless an access code is configured", async () => {
-  const closed = await startServer({ staffAccessCode: "" });
-  const res = await new Client(closed.base).post("/api/staff/auth/register", staffSignup());
-  assert.equal(res.status, 403);
-  await closed.close();
+test("staff must choose one of the county departments when signing up", async () => {
+  const res = await new Client(srv.base).post("/api/staff/auth/register", staffSignup({ email: "dept@muranga.go.ke", department: "Made-up Department" }));
+  assert.equal(res.status, 400);
+  assert.ok(res.body.fields.department);
+});
+
+test("the chosen department is saved on the staff account", async () => {
+  const c = new Client(srv.base);
+  const res = await c.post("/api/staff/auth/register", staffSignup({ email: "water@muranga.go.ke", department: "Water & Sanitation" }));
+  assert.equal(res.body.user.department, "Water & Sanitation");
+  assert.equal((await c.get("/api/staff/auth/me")).body.user.department, "Water & Sanitation");
 });

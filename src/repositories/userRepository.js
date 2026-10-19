@@ -23,6 +23,10 @@ class UserRepository {
     this.store.save();
   }
 
+  hasOwner() {
+    return this.store.data.users.some((u) => u.isOwner);
+  }
+
   create(fields) {
     const user = { id: crypto.randomUUID(), createdAt: new Date().toISOString(), ...fields };
     this.store.data.users.push(user);

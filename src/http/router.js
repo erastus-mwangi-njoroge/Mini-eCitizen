@@ -17,6 +17,7 @@ class Router {
   get(pattern, ...handlers) { return this.add("GET", pattern, ...handlers); }
   post(pattern, ...handlers) { return this.add("POST", pattern, ...handlers); }
   patch(pattern, ...handlers) { return this.add("PATCH", pattern, ...handlers); }
+  delete(pattern, ...handlers) { return this.add("DELETE", pattern, ...handlers); }
 
   /** @returns {{handlers: Function[], params: object}|null} */
   match(method, pathname) {

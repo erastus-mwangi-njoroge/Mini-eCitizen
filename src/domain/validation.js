@@ -7,6 +7,7 @@ const { categoryIds } = require("./categories");
 const { statusIds, priorityIds } = require("./statuses");
 const { isValidLocation } = require("./locations");
 const { STAFF_DOMAIN, isStaffEmail } = require("./staffAccess");
+const { isDepartment } = require("./departments");
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE = /^(?:\+?254|0)([17]\d{8})$/; // Kenyan mobile: 07xx / 01xx / +2547xx
@@ -34,19 +35,28 @@ function validateRegistration(input = {}) {
   return { name, email, phone: "+254" + phoneMatch[1], password };
 }
 
-/** Staff sign-up: county email required, stronger password, and the access code issued by the county. */
+/** Staff sign-up: county email, a department, a stronger password, and the approval code issued by the administrator. */
 function validateStaffRegistration(input = {}) {
   const name = text(input.name).replace(/\s+/g, " ");
   const email = text(input.email).toLowerCase();
   const password = typeof input.password === "string" ? input.password : "";
   const accessCode = text(input.accessCode);
+  const department = text(input.department);
   check([
     ["name", name.length < 2 || name.length > 80 ? "Enter your full name." : ""],
     ["email", !EMAIL.test(email) || !isStaffEmail(email) ? `Staff accounts need a @${STAFF_DOMAIN} email address.` : ""],
     ["password", password.length < 10 ? "Use at least 10 characters." : password.length > 128 ? "Password is too long." : ""],
-    ["accessCode", !accessCode ? "Enter the staff access code." : ""],
+    ["department", !isDepartment(department) ? "Choose your county department." : ""],
+    ["accessCode", !accessCode ? "Enter the approval code from the administrator." : ""],
   ]);
-  return { name, email, password, accessCode };
+  return { name, email, department, password, accessCode };
+}
+
+/** Issuing an approval code: the email is optional (it locks the code to that address and emails it). */
+function validateInvite(input = {}) {
+  const email = text(input.email).toLowerCase();
+  check([["email", email && (!EMAIL.test(email) || !isStaffEmail(email)) ? `Use a @${STAFF_DOMAIN} address, or leave it empty.` : ""]]);
+  return { email };
 }
 
 /** Staff sign-in only ever accepts county addresses; anything else is refused before the password is looked at. */
@@ -118,4 +128,4 @@ function validateAdminUpdate(input = {}) {
   return { status, priority, note };
 }
 
-module.exports = { validateForgotPassword, validatePasswordReset, validateRegistration, validateStaffRegistration, validateStaffLogin, validateLogin, validateNewRequest, validateAdminUpdate };
+module.exports = { validateInvite, validateForgotPassword, validatePasswordReset, validateRegistration, validateStaffRegistration, validateStaffLogin, validateLogin, validateNewRequest, validateAdminUpdate };

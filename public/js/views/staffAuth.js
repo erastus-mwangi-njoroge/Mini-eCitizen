@@ -2,7 +2,7 @@ import { h } from "../core/dom.js";
 import { api } from "../core/api.js";
 import { route, navigate } from "../core/router.js";
 import { session, setStaff } from "../core/session.js";
-import { field, showErrors, busy } from "../components/form.js";
+import { field, select, showErrors, busy } from "../components/form.js";
 import { forgotPasswordForm, resetPasswordForm } from "../components/recoveryForms.js";
 
 /**
@@ -57,7 +57,7 @@ route("/staff/login", {
       field("Password", input("password", "password", { autocomplete: "current-password" })),
     ],
     submitLabel: "Sign in to staff portal", busyLabel: "Signing in…", endpoint: "/api/staff/auth/login",
-    footer: session.meta.staffSignupOpen ? [h("a", { href: "#/staff/forgot-password" }, "Forgot your password?"), h("br"), "New staff member? ", h("a", { href: "#/staff/register" }, "Create a staff account")] : h("a", { href: "#/staff/forgot-password" }, "Forgot your password?"),
+    footer: [h("a", { href: "#/staff/forgot-password" }, "Forgot your password?"), h("br"), "New staff member? ", h("a", { href: "#/staff/register" }, "Create a staff account")],
   }),
 });
 
@@ -66,17 +66,16 @@ route("/staff/register", {
   access: "staffGuest",
   render: () => staffAuthPage({
     title: "Create a staff account",
-    intro: `Only @${session.meta.staffDomain} email addresses are accepted.`,
-    fields: session.meta.staffSignupOpen
-      ? [
-          field("Full name", input("name", "text", { autocomplete: "name" })),
-          field("Work email", input("email", "email", { autocomplete: "username", placeholder: `name@${session.meta.staffDomain}` })),
-          field("Staff access code", input("accessCode", "password", { autocomplete: "off" }), "Given to you by the county ICT office."),
-          field("Password", input("password", "password", { autocomplete: "new-password" }), "At least 10 characters."),
-        ]
-      : [h("div", { class: "notice notice-bad" }, "Staff sign-up is closed. Ask the system administrator to create your account.")],
+    intro: `Only @${session.meta.staffDomain} email addresses are accepted, and you need an approval code from the county administrator.`,
+    fields: [
+      field("Full name", input("name", "text", { autocomplete: "name" })),
+      field("Work email", input("email", "email", { autocomplete: "username", placeholder: `name@${session.meta.staffDomain}` })),
+      field("County department", select("department", session.meta.departments.map((d) => ({ value: d, label: d })), "Choose your department")),
+      field("Approval code", input("accessCode", "text", { autocomplete: "off", placeholder: "MRG-XXXX-XXXX", spellcheck: false }), "Issued to you by the county administrator. It works once."),
+      field("Password", input("password", "password", { autocomplete: "new-password" }), "At least 10 characters."),
+    ],
     submitLabel: "Create staff account", busyLabel: "Creating…", endpoint: "/api/staff/auth/register",
-    footer: ["Already have an account? ", h("a", { href: "#/staff/login" }, "Staff sign-in")],
+    footer: ["Already have an account? ", h("a", { href: "#/staff/login" }, "Staff sign-in"), h("br"), h("a", { href: "#/staff/forgot-password" }, "Forgot your password?")],
   }),
 });
 

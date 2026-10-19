@@ -60,7 +60,7 @@ function staffHeader(path) {
     h("span", { class: "nav-spacer" }),
     h("a", { href: "#/" }, "Citizen site ↗"),
     staff
-      ? [h("span", { class: "nav-user" }, staff.name, h("span", { class: "tag" }, "Staff")), h("button", { class: "btn btn-ghost btn-sm", onclick: staffSignOut }, "Sign out")]
+      ? [h("span", { class: "nav-user" }, staff.name, h("span", { class: "tag", title: staff.department || "Staff" }, staff.department || "Staff")), h("button", { class: "btn btn-ghost btn-sm", onclick: staffSignOut }, "Sign out")]
       : null);
 
   return [

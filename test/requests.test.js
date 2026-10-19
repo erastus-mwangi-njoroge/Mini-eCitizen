@@ -33,7 +33,8 @@ test("an optional photo is stored and served only to its owner and staff", async
   assert.equal(own.status, 200);
   assert.equal(own.headers.get("content-type"), "image/png");
   assert.deepEqual(own.body, Buffer.from(PNG_DATA_URL.split(",")[1], "base64"), "served bytes match the upload");
-  assert.equal((await admin.get(`/api/requests/${request.id}/image`)).status, 200);
+  assert.equal((await admin.get(`/api/admin/requests/${request.id}/image`)).status, 200);
+  assert.equal((await admin.get(`/api/requests/${request.id}/image`)).status, 403, "staff use the staff endpoint, not the citizen one");
   assert.equal((await bob.get(`/api/requests/${request.id}/image`)).status, 403);
 });
 
@@ -66,6 +67,13 @@ test("citizens cannot use admin endpoints", async () => {
   assert.equal((await new Client(srv.base).get("/api/admin/requests")).status, 401);
   const id = (await alice.get("/api/requests")).body.requests[0].id;
   assert.equal((await alice.patch(`/api/admin/requests/${id}`, { status: "resolved" })).status, 403);
+});
+
+test("staff can open any request through the staff endpoint; citizens cannot", async () => {
+  const id = (await alice.get("/api/requests")).body.requests[0].id;
+  const view = (await admin.get(`/api/admin/requests/${id}`)).body.request;
+  assert.ok(view.citizen.name, "staff see who reported it");
+  assert.equal((await alice.get(`/api/admin/requests/${id}`)).status, 403);
 });
 
 test("admins cannot submit citizen requests", async () => {
@@ -122,6 +130,8 @@ test("admin list supports search, filters, sorting and pagination", async () => 
   const water = (await admin.get("/api/admin/requests?category=water")).body;
   assert.ok(water.total >= 1 && water.items.every((r) => r.category === "water"));
   assert.equal((await admin.get("/api/admin/requests?q=kariara")).body.total, 1);
+  const dept = (await admin.get("/api/admin/requests?department=Roads%20%26%20Lighting&pageSize=100")).body;
+  assert.ok(dept.total >= 1 && dept.items.every((r) => ["streetlight", "roads"].includes(r.category)));
   assert.ok((await admin.get("/api/admin/requests?status=open")).body.items.every((r) => r.status !== "resolved"));
   const urgentFirst = (await admin.get("/api/admin/requests?sort=priority")).body.items;
   assert.equal(urgentFirst[0].priority, "urgent");
@@ -136,6 +146,13 @@ test("analytics count open vs resolved correctly", async () => {
   assert.equal(a.totals.open, a.totals.pending + a.totals.inProgress);
   assert.equal(a.totals.all, a.byCategory.reduce((n, c) => n + c.open + c.resolved, 0));
   assert.equal(a.daily.length, 14);
+  for (const group of [...a.byCategory, ...a.byWard, ...a.byDepartment]) {
+    assert.equal(group.total, group.open + group.resolved);
+    assert.equal(group.open, group.pending + group.inProgress);
+  }
+  assert.equal(a.byDepartment.reduce((n, d) => n + d.total, 0), list.length);
+  const water = a.byDepartment.find((d) => d.key === "Water & Sanitation");
+  assert.equal(water.total, list.filter((r) => ["water", "drainage"].includes(r.category)).length);
   assert.equal(a.daily.reduce((n, d) => n + d.submitted, 0), list.length);
 });
 
