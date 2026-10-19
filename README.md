@@ -49,9 +49,9 @@ Both portals have a **Forgot your password?** link. The user enters their email,
 
 In production, if any of these is missing, reset emails are disabled (a warning is logged and the link is never written to the logs). Notes: a free Gmail/Yahoo address as sender may land in spam; staff reset emails can only be delivered to real mailboxes, so a made-up `@muranga.go.ke` address will never receive one.
 
-## County logo
+## Admin View
 
-The header shows the Murang'a County coat of arms from `public/img/muranga-coat-of-arms.png` (PNG, roughly square, ideally 200 px or larger). Replace that file to change the logo; if the file is missing the header shows the letter "M" instead. The official image is on [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Coat_of_Arms_of_Muranga_County.png) (check the licence stated there before publishing).
+![alt text](image.png)
 
 ## Features
 
