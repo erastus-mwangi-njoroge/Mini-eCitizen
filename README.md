@@ -49,9 +49,6 @@ Both portals have a **Forgot your password?** link. The user enters their email,
 
 In production, if any of these is missing, reset emails are disabled (a warning is logged and the link is never written to the logs). Notes: a free Gmail/Yahoo address as sender may land in spam; staff reset emails can only be delivered to real mailboxes, so a made-up `@muranga.go.ke` address will never receive one.
 
-## Admin View
-
-![alt text](image.png)
 
 ## Features
 
@@ -62,7 +59,7 @@ In production, if any of these is missing, reset emails are disabled (a warning 
 - **Submit a request** — category, sub-county → ward, exact location, description, optional photo.
 - **Admin dashboard** — every request, with search, filters (status, category, priority), sorting and pagination.
 - **Status tracking** — Pending → In Progress → Resolved, enforced on the server; each change is stored in a timeline with the staff member's name and an optional note the citizen can read.
-- **Basic analytics** — open vs resolved counts, plus: pending / in-progress split, resolution rate, average time to resolve, cases open > 7 days, breakdown by category and by ward, and a 14-day submitted-vs-resolved chart.
+- **Basic analytics** — open vs resolved counts, plus: pending / in-progress split, resolution rate, average time to resolve, cases open > 7 days, breakdown by category and by ward.
 
 **Bonus**
 - Public **tracking by reference number** (e.g. `SR-2026-00042`) with no sign-in — shows progress only, no personal or location detail.
@@ -133,6 +130,10 @@ Run `NODE_ENV=production ADMIN_PASSWORD=<strong> STAFF_ACCESS_CODE=<secret> node
 ## Testing
 
 `npm test` starts the real server on a random port with a temporary data folder and exercises it over HTTP: registration and login rules, tampered cookies, rate limiting, request validation, photo checks, access control (citizen vs admin vs anonymous), the status workflow, public tracking privacy, filtering/pagination, analytics totals, and CSV safety.
+
+## Admin Dashboard
+<img width="808" height="633" alt="image" src="https://github.com/user-attachments/assets/5ad4ffaa-91f6-48c3-b0a0-ba67438a4226" />
+
 
 ## Known limitations
 
