@@ -152,12 +152,13 @@ class RequestService {
     return request;
   }
 
-  #filter({ status, category, ward, priority, q, sort } = {}) {
+  #filter({ status, category, ward, department, priority, q, sort } = {}) {
     const needle = (q || "").trim().toLowerCase();
     const matches = (r) => {
       if (status === "open" ? !isOpen(r.status) : status && r.status !== status) return false;
       if (category && r.category !== category) return false;
       if (ward && r.ward !== ward) return false;
+      if (department && (findCategory(r.category) || {}).department !== department) return false;
       if (priority && r.priority !== priority) return false;
       if (!needle) return true;
       const owner = this.users.findById(r.userId);

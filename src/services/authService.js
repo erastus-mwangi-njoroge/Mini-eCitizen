@@ -2,13 +2,13 @@ const crypto = require("crypto");
 const { validateRegistration, validateLogin, validateStaffRegistration, validateStaffLogin, validateForgotPassword, validatePasswordReset } = require("../domain/validation");
 const { passwordResetEmail } = require("./emailTemplates");
 const { isStaffEmail, STAFF_DOMAIN } = require("../domain/staffAccess");
-const { conflict, forbidden, badRequest, AppError } = require("../domain/errors");
+const { conflict, badRequest, AppError } = require("../domain/errors");
 
 const CITIZEN = "citizen";
 const STAFF = "admin"; // every staff account has the "admin" role
 
 /** What the browser is allowed to know about a user (never the password hash). */
-const toPublicUser = (u) => ({ id: u.id, name: u.name, email: u.email, phone: u.phone, role: u.role });
+const toPublicUser = (u) => ({ id: u.id, name: u.name, email: u.email, phone: u.phone, role: u.role, department: u.department || null, canInvite: Boolean(u.isOwner) });
 
 const MIN_PASSWORD = { citizen: 8, admin: 10 };
 const RESET_COOLDOWN_MS = 60_000; // at most one reset email per account per minute (stops email-bombing)
@@ -30,14 +30,15 @@ class AuthService {
    * @param {PasswordHasher} hasher
    * @param {ResetTokenRepository} resetTokens
    * @param {{ send(message): Promise<void> }} mailer
-   * @param {{ staffAccessCode?: string, publicUrl?: string, resetMinutes?: number }} options
+   * @param {StaffInviteService} staffInvites  approval codes (and the optional shared code) for staff sign-up
+   * @param {{ publicUrl?: string, resetMinutes?: number }} options
    */
-  constructor(users, hasher, resetTokens, mailer, { staffAccessCode = "", publicUrl = "", resetMinutes = 30 } = {}) {
+  constructor(users, hasher, resetTokens, mailer, staffInvites, { publicUrl = "", resetMinutes = 30 } = {}) {
     this.users = users;
     this.hasher = hasher;
     this.resetTokens = resetTokens;
     this.mailer = mailer;
-    this.staffAccessCode = staffAccessCode;
+    this.staffInvites = staffInvites;
     this.publicUrl = publicUrl;
     this.resetMinutes = resetMinutes;
     // Checked when the email is unknown so that "no such user" takes as long as "wrong password".
@@ -60,11 +61,13 @@ class AuthService {
   // ---- Staff portal ------------------------------------------------------
 
   registerStaff(input) {
-    if (!this.staffAccessCode) throw forbidden("Staff sign-up is closed. Ask the system administrator to create your account.");
-    const { name, email, password, accessCode } = validateStaffRegistration(input);
-    if (!sameSecret(accessCode, this.staffAccessCode)) throw badRequest("Please fix the highlighted fields.", { accessCode: "That access code is not correct." });
+    const { name, email, department, password, accessCode } = validateStaffRegistration(input);
+    const grant = this.staffInvites.find(accessCode, email);
+    if (!grant) throw badRequest("Please fix the highlighted fields.", { accessCode: "That approval code is not correct, has expired, or was issued to a different email." });
     if (this.users.findByEmail(email)) throw conflict("That email is already registered.", { email: "Already registered. Try signing in." });
-    return toPublicUser(this.users.create({ name, email, phone: "", role: STAFF, passwordHash: this.hasher.hash(password) }));
+    const user = this.users.create({ name, email, phone: "", department, role: STAFF, passwordHash: this.hasher.hash(password) });
+    this.staffInvites.consume(grant); // single-use codes are spent only once the account exists
+    return toPublicUser(user);
   }
 
   loginStaff(input) {
@@ -121,10 +124,17 @@ class AuthService {
 
   /** Create the first staff account if no admin exists yet. */
   ensureAdmin({ adminEmail, adminPassword }) {
-    if (this.users.hasAdmin()) return;
+    if (this.users.hasAdmin()) {
+      // Databases created before approval codes existed have no owner: make the configured (or first) admin the owner.
+      if (!this.users.hasOwner()) {
+        const owner = this.users.findByEmail(adminEmail) || this.users.firstAdmin();
+        if (owner) { owner.isOwner = true; this.users.save(); }
+      }
+      return;
+    }
     if (!isStaffEmail(adminEmail)) throw new Error(`ADMIN_EMAIL must be a @${STAFF_DOMAIN} address.`);
     if (!adminPassword) throw new Error("ADMIN_PASSWORD must be set to create the first admin account.");
-    this.users.create({ name: "County Administrator", email: adminEmail, phone: "", role: STAFF, passwordHash: this.hasher.hash(adminPassword) });
+    this.users.create({ name: "County Administrator", email: adminEmail, phone: "", department: "Public Service & Administration", isOwner: true, role: STAFF, passwordHash: this.hasher.hash(adminPassword) });
   }
 
   /** Same generic failure for unknown email, wrong password, and an account that belongs to the other portal. */

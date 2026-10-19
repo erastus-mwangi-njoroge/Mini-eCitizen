@@ -1,4 +1,4 @@
-const { CATEGORIES } = require("../domain/categories");
+const { CATEGORIES, findCategory } = require("../domain/categories");
 const { isOpen } = require("../domain/statuses");
 
 const DAY_MS = 86_400_000;
@@ -31,6 +31,7 @@ class AnalyticsService {
       avgResolutionHours: hours.length ? Math.round((hours.reduce((a, b) => a + b, 0) / hours.length) * 10) / 10 : null,
       byCategory: this.#openVsResolved(all, (r) => r.category, CATEGORIES.map((c) => [c.id, c.label])),
       byWard: this.#openVsResolved(all, (r) => r.ward).slice(0, 8),
+      byDepartment: this.#openVsResolved(all, (r) => (findCategory(r.category) || {}).department || "Public Service & Administration"),
       daily: this.#lastDays(all, 14, now),
     };
   }
@@ -41,11 +42,14 @@ class AnalyticsService {
     const groups = new Map();
     for (const r of all) {
       const key = keyOf(r);
-      const g = groups.get(key) || { key, label: names.get(key) || key, open: 0, resolved: 0 };
-      g[isOpen(r.status) ? "open" : "resolved"]++;
+      const g = groups.get(key) || { key, label: names.get(key) || key, total: 0, open: 0, pending: 0, inProgress: 0, resolved: 0 };
+      g.total++;
+      if (r.status === "pending") { g.open++; g.pending++; }
+      else if (r.status === "in_progress") { g.open++; g.inProgress++; }
+      else g.resolved++;
       groups.set(key, g);
     }
-    return [...groups.values()].sort((a, b) => b.open + b.resolved - (a.open + a.resolved));
+    return [...groups.values()].sort((a, b) => b.total - a.total);
   }
 
   /** Submitted vs resolved per day for the last n days, oldest first. */

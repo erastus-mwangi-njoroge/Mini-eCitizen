@@ -23,6 +23,10 @@ class UserRepository {
     this.store.save();
   }
 
+  firstAdmin() {
+    return this.store.data.users.find((u) => u.role === "admin") || null;
+  }
+
   hasOwner() {
     return this.store.data.users.some((u) => u.isOwner);
   }

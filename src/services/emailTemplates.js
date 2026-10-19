@@ -16,4 +16,20 @@ function passwordResetEmail({ name, link, minutes, portal }) {
   };
 }
 
-module.exports = { passwordResetEmail };
+/** The staff approval-code email, sent when the administrator locks a code to one address. */
+function staffInviteEmail({ code, link, days, invitedBy }) {
+  return {
+    subject: "Your approval code – Murang'a County Staff Portal",
+    html: `<div style="font-family:Arial,sans-serif;max-width:480px;line-height:1.5;color:#16261e">
+<h2 style="margin:0 0 12px">You have been invited to the Staff Portal</h2>
+<p>${escapeHtml(invitedBy)} has approved you to create a staff account on the Murang'a County Staff Portal.</p>
+<p>Your approval code is:</p>
+<p style="font-size:22px;font-weight:bold;letter-spacing:2px;background:#eef2f7;padding:12px 16px;border-radius:8px;display:inline-block">${escapeHtml(code)}</p>
+<p>Use it on the <a href="${escapeHtml(link)}">staff sign-up page</a> with this email address. The code works once and expires in ${days} days.</p>
+<p style="font-size:13px;color:#55665d">If the link does not work, copy this address into your browser:<br>${escapeHtml(link)}</p>
+<p style="font-size:13px;color:#55665d">If you were not expecting this, you can ignore this email.</p>
+</div>`,
+  };
+}
+
+module.exports = { passwordResetEmail, staffInviteEmail };
