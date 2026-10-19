@@ -103,7 +103,7 @@ function buildRouter({ auth, requests, analytics, staffInvites, config }) {
   router.get("/api/admin/export.csv", requireAdmin, (ctx) => ({
     raw: { type: "text/csv; charset=utf-8", body: requests.exportCsv(ctx.query), filename: "service-requests.csv" },
   }));
-  router.get("/api/admin/analytics", requireAdmin, () => analytics.summary());
+  router.get("/api/admin/analytics", requireAdmin, (ctx) => analytics.summary(ctx.query));
   router.patch("/api/admin/requests/:id", requireAdmin, async (ctx) => ({ request: requests.update(ctx.staff, ctx.params.id, await ctx.json()) }));
 
   // ---- Staff portal: approval codes (county administrator only) -----------------

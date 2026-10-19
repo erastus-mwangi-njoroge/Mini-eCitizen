@@ -32,7 +32,7 @@ function buildApp(config, overrides = {}) {
   const staffInvites = new StaffInviteService(new StaffInviteRepository(store), mailer, config);
   const auth = new AuthService(users, new PasswordHasher(), resetTokens, mailer, staffInvites, config);
   const requests = new RequestService(requestRepo, users, new ImageStorage(path.join(config.dataDir, "uploads")), config);
-  const analytics = new AnalyticsService(requestRepo);
+  const analytics = new AnalyticsService(requestRepo, (filters) => requests.matching(filters));
   auth.ensureAdmin(config);
 
   const tokens = new TokenService(loadOrCreateSecret(config.sessionSecret, config.dataDir), config.sessionHours * 3_600_000);

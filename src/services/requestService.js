@@ -152,6 +152,11 @@ class RequestService {
     return request;
   }
 
+  /** Requests matching the dashboard filters (used by analytics so charts and table always agree). */
+  matching(filters = {}) {
+    return this.#filter({ ...filters, sort: "newest" });
+  }
+
   #filter({ status, category, ward, department, priority, q, sort } = {}) {
     const needle = (q || "").trim().toLowerCase();
     const matches = (r) => {
