@@ -1,3 +1,25 @@
 data/
 node_modules/
 .env
+
+# Empty stray files created in the repo root by shell output (e.g. an unquoted ">=18" redirect during deploys).
+# Anchored with "/" so they only match the root, and never the real README.md or node_modules/.
+/=18
+/Build
+/Checking
+/Cloning
+/Common
+/Deploying...
+/Docs
+/Downloaded
+/Downloading
+/Exited
+/Installing
+/Requesting
+/Running
+/Setting
+/Uploaded
+/Uploading
+/Using
+/muranga-service-requests@3.0.0
+/node
