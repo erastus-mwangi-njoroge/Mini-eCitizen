@@ -65,10 +65,10 @@ export function ringChart(items, { inner = 0, centre, centreNote, onPick, name }
 }
 
 /** Horizontal bars: one coloured bar per item, with an icon and the count. */
-export function hBars(items, { onPick }) {
+export function hBars(items, { onPick, scroll = false }) {
   const max = Math.max(1, ...items.map((d) => d.value));
   const anySelected = items.some((d) => d.selected);
-  return h("div", { class: "hbars" }, items.map((d) =>
+  return h("div", { class: scroll ? "hbars is-scroll" : "hbars" }, items.map((d) =>
     h("button", { type: "button", class: `hbar${state(d.selected, anySelected)}`, "aria-pressed": String(Boolean(d.selected)), title: `${d.label}: ${d.value} (${d.detail})`, onclick: () => onPick(d.key) },
       h("span", { class: "hbar-label" }, d.icon ? `${d.icon} ` : "", d.label),
       h("span", { class: "hbar-track" }, h("span", { class: "hbar-fill", style: { width: `${(d.value / max) * 100}%`, backgroundColor: d.color } })),

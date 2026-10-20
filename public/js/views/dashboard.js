@@ -103,7 +103,7 @@ function dashboard() {
       card("Status", "Click a slice to filter by status", ringChart(statusItems, { inner: 46, centre: t.all, centreNote: "cases", name: "Requests by status", onPick: (k) => toggle("status")(k) })),
       card("By department", "Click a slice to see one department", ringChart(pick("department", a.byDepartment, () => ({})).map((d) => ({ ...d, value: d.value })), { inner: 0, name: "Requests by department", onPick: toggle("department") })),
       card("By category", "Click a bar to filter by category", hBars(pick("category", a.byCategory, (g) => ({ icon: category(g.key).icon })), { onPick: toggle("category") })),
-      card("Busiest wards", "Click a column to filter by ward", columns(pick("ward", a.byWard, () => ({})), { onPick: toggle("ward") })),
+      card("By ward", "All wards, busiest first. Click a bar to filter by ward", hBars(pick("ward", a.byWard, () => ({})), { onPick: toggle("ward"), scroll: true })),
       card("Last 14 days", "Follows whatever is selected above", areaTrend(a.daily)));
     grid.classList.toggle("is-filtered", Boolean(analyticsQuery()));
   }

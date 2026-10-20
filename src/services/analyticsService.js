@@ -1,5 +1,7 @@
 const { CATEGORIES, findCategory } = require("../domain/categories");
 const { isOpen } = require("../domain/statuses");
+const { SUBCOUNTY_WARDS } = require("../domain/locations");
+const ALL_WARDS = Object.values(SUBCOUNTY_WARDS).flat();
 
 const DAY_MS = 86_400_000;
 const EAT_OFFSET_MS = 3 * 3_600_000; // Kenya is UTC+3 all year, so "today" is calculated in East Africa Time
@@ -51,17 +53,18 @@ class AnalyticsService {
       resolutionRate: matched.length ? Math.round((count(matched, "resolved") / matched.length) * 100) : 0,
       avgResolutionHours: hours.length ? Math.round((hours.reduce((a, b) => a + b, 0) / hours.length) * 10) / 10 : null,
       byCategory: this.#group(rowsWithout("category"), (r) => r.category, CATEGORIES.map((c) => [c.id, c.label]), filters.category),
-      byWard: this.#group(rowsWithout("ward"), (r) => r.ward, [], filters.ward, 8),
+      byWard: this.#group(rowsWithout("ward"), (r) => r.ward, [], filters.ward, Infinity, ALL_WARDS), // every ward, busiest first
       byDepartment: this.#group(rowsWithout("department"), departmentOf, [], filters.department),
       daily: this.#lastDays(matched, 14, now),
     };
   }
 
   /** Groups requests by a key with status counts, busiest first. A selected group always stays in the list, even at zero. */
-  #group(rows, keyOf, labels = [], selected = "", limit = Infinity) {
+  #group(rows, keyOf, labels = [], selected = "", limit = Infinity, seed = []) {
     const names = new Map(labels);
     const groups = new Map();
     const blank = (key) => ({ key, label: names.get(key) || key, total: 0, open: 0, pending: 0, inProgress: 0, resolved: 0 });
+    for (const key of seed) groups.set(key, blank(key)); // groups that must appear even with no requests
     for (const r of rows) {
       const key = keyOf(r);
       const g = groups.get(key) || blank(key);
@@ -71,7 +74,7 @@ class AnalyticsService {
       else g.resolved++;
       groups.set(key, g);
     }
-    const sorted = [...groups.values()].sort((a, b) => b.total - a.total);
+    const sorted = [...groups.values()].sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
     const shown = sorted.slice(0, limit);
     if (selected && !shown.some((g) => g.key === selected)) shown.push(groups.get(selected) || blank(selected));
     return shown;

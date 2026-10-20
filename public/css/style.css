@@ -396,6 +396,7 @@ body.staff-portal .btn { border-radius: 6px; }
 .lg-inline { color: var(--muted); margin: 4px 0 0; }
 
 .hbars { display: grid; gap: 6px; }
+.hbars.is-scroll { max-height: 400px; overflow-y: auto; padding-right: 4px; }
 .hbar { display: grid; grid-template-columns: minmax(120px, 34%) 1fr 34px; gap: 10px; align-items: center; background: none; border: 1px solid transparent; border-radius: 8px; padding: 4px 6px; color: inherit; cursor: pointer; text-align: left; font-size: .9rem; transition: opacity .2s; }
 .hbar:hover { background: var(--tint); }
 .hbar.is-sel { background: var(--tint); border-color: var(--green); }
