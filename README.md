@@ -134,6 +134,14 @@ Run `NODE_ENV=production ADMIN_PASSWORD=<strong> STAFF_ACCESS_CODE=<secret> node
 ## Admin Dashboard
 <img width="808" height="633" alt="image" src="https://github.com/user-attachments/assets/5ad4ffaa-91f6-48c3-b0a0-ba67438a4226" />
 
+## Demo
+
+
+https://github.com/user-attachments/assets/862b351a-ef54-4087-9c32-30d477352313
+
+
+
+
 
 ## Known limitations
 
